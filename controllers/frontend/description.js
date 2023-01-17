@@ -1,6 +1,6 @@
 const { user } = require("../../models");
 const db = require("../../models");
-const User = db.user;
+const User = db.User;
 const Project = db.Project;
 const UserProject = db.User_Project;
 const Description = db.description;
@@ -26,16 +26,20 @@ exports.getDescription = async (req, res) => {
         },
       ],
     });
-    // return only last description
-    let description = userProject.Descriptions;
-    if (!description) {
-      return res.status(200).send({ message: "No description found" });
-    }
     if (!userProject) {
       return res.status(400).send({ message: "Invalid ProjectId" });
     }
-    let lastDescription = description.pop();
-
+    let description = userProject.Descriptions;
+    let desc = description.map((desc) => {
+      return desc.toJSON();
+    });
+    if (desc.length === 0) {
+      return res.status(200).send({ message: "No description found" });
+    }
+    if (desc.length === 1) {
+      return res.status(200).send(desc[0]);
+    }
+    let lastDescription = desc.pop();
     return res.status(200).send(lastDescription);
   } catch (error) {
     return res
@@ -68,10 +72,14 @@ exports.addDescription = async (req, res) => {
     let userProject = await UserProject.findOne({
       where: { userId: userId, projectId: id },
     });
+    if (!userProject) {
+      return res.status(400).send({ message: "Invalid ProjectId" });
+    }
     // add description to description table and return description
     userProject = await userProject.createDescription({
       description: description,
     });
+
     return res.status(200).send(userProject);
   } catch (error) {
     return res

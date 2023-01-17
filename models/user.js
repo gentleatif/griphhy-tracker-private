@@ -21,9 +21,6 @@ module.exports = (sequelize, Sequelize) => {
     description: {
       type: Sequelize.STRING,
     },
-    projects: {
-      type: Sequelize.JSON,
-    },
     attachment: {
       type: Sequelize.JSON,
     },
@@ -36,9 +33,7 @@ module.exports = (sequelize, Sequelize) => {
     profilePic: {
       type: Sequelize.STRING,
     },
-    todayTotalTrackedTime: {
-      type: Sequelize.INTEGER,
-    },
+
     gender: {
       type: Sequelize.STRING,
     },
@@ -65,6 +60,14 @@ module.exports = (sequelize, Sequelize) => {
     role: {
       type: Sequelize.INTEGER,
       defaultValue: 0,
+    },
+    status: {
+      type: Sequelize.INTEGER,
+      defaultValue: 1,
+    },
+    // Refresh token
+    refreshToken: {
+      type: Sequelize.STRING,
     },
   });
   return User;

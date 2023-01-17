@@ -8,7 +8,8 @@ const sequelize = new Sequelize(
   {
     host: dbConfig.host,
     dialect: dbConfig.dialect,
-    operatorsAliases: false,
+    operatorsAliases: 0,
+    logging: dbConfig.logging,
 
     pool: {
       max: dbConfig.pool.max,
@@ -24,7 +25,7 @@ const db = {};
 db.Sequelize = Sequelize;
 db.sequelize = sequelize;
 
-db.user = require("./user.js")(sequelize, Sequelize);
+db.User = require("./user.js")(sequelize, Sequelize);
 db.Project = require("./project.js")(sequelize, Sequelize);
 db.attachment = require("./attachment.js")(sequelize, Sequelize);
 db.User_Project = require("./user_projects")(sequelize, Sequelize);

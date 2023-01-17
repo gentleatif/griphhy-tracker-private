@@ -1,6 +1,6 @@
 const db = require("../../models");
 // const attachment = require("../../models/attachment");
-const User = db.user;
+const User = db.User;
 const Project = db.Project;
 const Attachment = db.attachment;
 const User_project = db.User_Project;
@@ -9,8 +9,11 @@ const Sequelize = require("sequelize");
 exports.profile = async (req, res) => {
   let user = await User.findOne({
     where: { id: req.userId },
-    attributes: ["id", "fullname", "profilePic"],
+    attributes: ["id", "fullname", "profilePic", "status"],
   });
+  if (!user) {
+    return res.status(404).send({ message: "User Not found." });
+  }
   const Op = Sequelize.Op;
   const TODAY_START = new Date().setHours(0, 0, 0, 0);
   const NOW = new Date();

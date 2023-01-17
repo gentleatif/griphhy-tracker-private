@@ -1,6 +1,6 @@
 const { user } = require("../../models");
 const db = require("../../models");
-const User = db.user;
+const User = db.User;
 const Project = db.Project;
 const UserProject = db.User_Project;
 const Screenshot = db.screenshot;
@@ -38,7 +38,9 @@ exports.addScreenshot = async (req, res) => {
       where: { userId: userId, projectId: id },
     });
     // add screnshot with photo
-
+    if (!userProject) {
+      return res.status(400).send({ message: "UserProject not found" });
+    }
     userProject = await userProject.createScreenshot({
       imgPath: photo.path,
       keyboardEvents: keyboardEvent,

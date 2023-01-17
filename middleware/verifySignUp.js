@@ -1,5 +1,5 @@
 const db = require("../models");
-const User = db.user;
+const User = db.User;
 const path = require("path");
 exports.verifySignUp = async (req, res, next) => {
   const {
@@ -15,10 +15,8 @@ exports.verifySignUp = async (req, res, next) => {
     gender,
   } = req.body;
 
-  console.log("req.body=====>", email);
   try {
     // Email must be unique
-
     if (!email) {
       return res.status(400).send({
         message: "Failed! Email is required!",
@@ -29,7 +27,8 @@ exports.verifySignUp = async (req, res, next) => {
         email: email,
       },
     });
-    console;
+    console.log("user=====>", user);
+
     if (user) {
       return res.status(400).send({
         message: "Failed! Username is already in use!",

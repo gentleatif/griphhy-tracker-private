@@ -1,6 +1,5 @@
-const { screenshot } = require("../../models");
 const db = require("../../models");
-const User = db.user;
+const User = db.User;
 const Project = db.Project;
 const User_project = db.User_Project;
 const Sequelize = require("sequelize");
@@ -17,17 +16,20 @@ exports.getProject = async (req, res) => {
   const TODAY_START = new Date().setHours(0, 0, 0, 0);
   const NOW = new Date();
   let screenshotOfUserOfAllProjects = await User_project.findAll({
-    where: { userId: req.userId, ...req.query },
+    where: { UserId: req.userId, ...req.query },
     include: [
       {
         model: Screenshot,
       },
+      {
+        model: Project,
+      },
     ],
   });
 
-  console.log("screenshotOfUserOfAllProjects", screenshotOfUserOfAllProjects);
-  // khatarnak loop ghumap
-  let userProjects = screenshotOfUserOfAllProjects.map((project) => {
+  // screenshotOfUserOfAllProjects.Project = screenshotOfUserOfAllProjects.Project;
+
+  let userProjects = await screenshotOfUserOfAllProjects.map((project) => {
     let totalTimeOfAllDays = 0;
     let totalTimeOfToday = 0;
 
@@ -51,57 +53,23 @@ exports.getProject = async (req, res) => {
       "h " +
       (totalTimeOfAllDays % 60) +
       "m";
-    // remove screenshots from project
-
+    // find project that associated with user_project
+    project.name = project.Project.name;
+    project.subtitle = project.Project.subtitle;
+    project.status = project.Project.status;
+    delete project.Project;
+    delete project.ProjectId;
     delete project.Screenshots;
-    return project;
+    console.log("project --->", project);
+    //  only return project that status is 1
+    if (project.status == 1) {
+      delete project.status;
+      return project;
+    }
   });
-
-  //add name of all project in the user_project
+  //  remove null project from prject list
+  userProjects = await Promise.all(userProjects);
+  userProjects = userProjects.filter((project) => project != null);
 
   return res.status(200).send(userProjects);
-};
-
-exports.addProject = async (req, res) => {
-  const { name, subtitle, users, status } = req.body;
-  console.log("req.body", req.body);
-  try {
-    let project = await Project.create({
-      name,
-      subtitle,
-      status,
-      users,
-    });
-
-    let user = await User.findOne({
-      where: { id: req.userId },
-    });
-    project = await user.addProject(project);
-    return res.status(200).send(project);
-  } catch (error) {
-    return res.status(500).send(error);
-  }
-};
-
-// update Project
-exports.updateProject = async (req, res) => {
-  const { name, subtitle, users, status } = req.body;
-  try {
-    let project = await Project.findOne(
-      {
-        name,
-        subtitle,
-        status,
-        users,
-      },
-      {
-        where: {
-          id: req.params.id,
-        },
-      }
-    );
-    return res.status(200).send(project);
-  } catch (error) {
-    return res.status(500).send(error);
-  }
 };
