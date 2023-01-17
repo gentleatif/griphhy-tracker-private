@@ -2,7 +2,7 @@ module.exports = {
   host: "localhost",
   user: "root",
   password: "a82268T@",
-  database: "internalsystemdb",
+  database: "griphhyInternalSysDB",
   dialect: "mysql",
   pool: {
     max: 5,

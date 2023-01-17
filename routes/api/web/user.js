@@ -4,8 +4,8 @@ const {
   profile,
   getUser,
   updateUser,
-} = require("../../..../../../controllers/admin/user.js");
-const { isAuthenticated } = require("../../../middleware/authJwt");
+} = require("../../..../../../controllers/web/user.js");
+const { isAuthenticated } = require("../../../middleware/authJwt.js");
 const upload = require("../../../middleware/multer.js");
 
 router.get("/profile", isAuthenticated, profile);

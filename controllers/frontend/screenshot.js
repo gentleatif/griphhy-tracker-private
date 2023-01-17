@@ -7,7 +7,6 @@ const Screenshot = db.screenshot;
 
 exports.addScreenshot = async (req, res) => {
   const photo = req.file;
-
   const { id } = req.query;
   const userId = req.userId;
 
@@ -34,21 +33,20 @@ exports.addScreenshot = async (req, res) => {
   // console.log("id", id, "userId", userId, "photo", photo);
 
   try {
-    let userProject = await UserProject.findOne({
-      where: { userId: userId, projectId: id },
+    // add screnshot where ProjectId = id and UserId = userId
+    const screenshot = await Screenshot.create({
+      ProjectId: id,
+      UserId: userId,
+      photo: photo.path,
+      keyboardEvent,
+      mouseEvent,
+      duration,
     });
-    // add screnshot with photo
-    if (!userProject) {
-      return res.status(400).send({ message: "UserProject not found" });
-    }
-    userProject = await userProject.createScreenshot({
-      imgPath: photo.path,
-      keyboardEvents: keyboardEvent,
-      mouseEvents: mouseEvent,
-      duration: duration,
-    });
+    console.log("screenshot", screenshot);
 
-    return res.status(200).send(userProject);
+    return res.status(200).send({
+      message: "Screenshot added successfully",
+    });
   } catch (error) {
     return res
       .status(500)

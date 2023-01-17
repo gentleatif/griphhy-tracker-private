@@ -21,10 +21,12 @@ const projectRoutes = require("./routes/api/frontend/project");
 const descriptionRoutes = require("./routes/api/frontend/description");
 const screenshotRoutes = require("./routes/api/frontend/screenshot");
 
-// import all routes of admin
-const adminAuthRoutes = require("./routes/api/admin/auth");
-const adminProjectRoutes = require("./routes/api/admin/project");
-const adminUserRoutes = require("./routes/api/admin/user");
+// import all routes of
+const webAuthRoutes = require("./routes/api/web/auth");
+const webProjectRoutes = require("./routes/api/web/project");
+const webUserRoutes = require("./routes/api/web/user");
+const webScreenshotRoutes = require("./routes/api/web/screenshot");
+const webDescriptionRoutes = require("./routes/api/web/description");
 
 // middlewares
 app.use("/uploads", express.static("./uploads"));
@@ -38,24 +40,18 @@ Project.belongsToMany(User, {
   through: "User_Project",
 });
 
-// User_Project.hasMany(Project);
-
-Project.hasMany(User_Project);
-User_Project.belongsTo(Project);
-
-// User_Project.hasMany(User);
-// User.belongsTo(User_Project);
+// Screenshot Relation
+User.hasMany(Screenshot);
+Screenshot.belongsTo(User);
+Project.hasMany(Screenshot);
+Screenshot.belongsTo(Project);
 
 // description relation
-User_Project.hasMany(Description);
-Description.belongsTo(User_Project);
+User.hasMany(Description);
+Description.belongsTo(User);
+Project.hasMany(Description);
+Description.belongsTo(Project);
 
-// screenshot relation
-User_Project.hasMany(Screenshot);
-Screenshot.belongsTo(User_Project);
-
-User_Project.hasMany(User);
-User.belongsTo(User_Project);
 db.sequelize
   .sync({ alter: true })
   .then(() => {
@@ -72,10 +68,12 @@ app.use("/api/user", userRoutes);
 app.use("/api/project", projectRoutes);
 app.use("/api/description", descriptionRoutes);
 app.use("/api/screenshot", screenshotRoutes);
-// admin routes
-app.use("/api/web/auth", adminAuthRoutes);
-app.use("/api/web/project", adminProjectRoutes);
-app.use("/api/web/user", adminUserRoutes);
+// web panel routes
+app.use("/api/web/auth", webAuthRoutes);
+app.use("/api/web/project", webProjectRoutes);
+app.use("/api/web/user", webUserRoutes);
+app.use("/api/web/screenshot", webScreenshotRoutes);
+app.use("/api/web/description", webDescriptionRoutes);
 
 app.get("/", (req, res) => res.send("hello world"));
 app.listen(PORT, () => console.log(`Server is up and running on ...${PORT}`));

@@ -8,6 +8,7 @@ const Description = db.description;
 exports.getDescription = async (req, res) => {
   const userId = req.userId;
   const { id } = req.query;
+  const { description } = req.body;
   if (!id) {
     return res.status(400).send({ message: "Project id is required" });
   }
@@ -15,31 +16,31 @@ exports.getDescription = async (req, res) => {
   if (!userId) {
     return res.status(400).send({ message: "Invalid UserId" });
   }
+  if (description) {
+    return res.status(400).send({ message: "Description is required" });
+  }
 
   try {
-    // get last description of user
-    let userProject = await UserProject.findOne({
-      where: { UserId: userId, ProjectId: id },
-      include: [
-        {
-          model: Description,
-        },
-      ],
+    const project = await Project.findOne({
+      where: { id },
     });
-    if (!userProject) {
-      return res.status(400).send({ message: "Invalid ProjectId" });
+    if (!project) {
+      return res.status(400).send({ message: "Project not found" });
     }
-    let description = userProject.Descriptions;
-    let desc = description.map((desc) => {
-      return desc.toJSON();
+    const user = await User.findOne({
+      where: { id: userId },
     });
-    if (desc.length === 0) {
-      return res.status(200).send({ message: "No description found" });
+    if (!user) {
+      return res.status(400).send({ message: "User not found" });
     }
-    if (desc.length === 1) {
-      return res.status(200).send(desc[0]);
+    const description = await Description.findAll({
+      where: { ProjectId: id, UserId: userId },
+    });
+    if (!description) {
+      return res.status(400).send({ message: "Description not found" });
     }
-    let lastDescription = desc.pop();
+    let lastDescription = description[description.length - 1];
+
     return res.status(200).send(lastDescription);
   } catch (error) {
     return res
@@ -54,9 +55,7 @@ exports.addDescription = async (req, res) => {
   // project id
   const { id } = req.query;
   const userId = req.userId;
-  // if (!description) {
-  //   return res.status(400).send({ message: "Description is required" });
-  // }
+
   if (!id) {
     return res.status(400).send({ message: "Project id is required" });
   }
@@ -69,18 +68,27 @@ exports.addDescription = async (req, res) => {
   }
 
   try {
-    let userProject = await UserProject.findOne({
-      where: { userId: userId, projectId: id },
+    const project = await Project.findOne({
+      where: { id },
     });
-    if (!userProject) {
-      return res.status(400).send({ message: "Invalid ProjectId" });
+    if (!project) {
+      return res.status(400).send({ message: "Project not found" });
     }
-    // add description to description table and return description
-    userProject = await userProject.createDescription({
-      description: description,
+    const user = await User.findOne({
+      where: { id: userId },
     });
+    if (!user) {
+      return res.status(400).send({ message: "User not found" });
+    }
+    let addDescription = await Description.create({
+      ProjectId: id,
+      UserId: userId,
+      description: req.body.description,
+    });
+    console.log("addDescription---->", addDescription);
 
-    return res.status(200).send(userProject);
+    console.log("addDescription---->", addDescription);
+    return res.status(200).send(addDescription);
   } catch (error) {
     return res
       .status(500)

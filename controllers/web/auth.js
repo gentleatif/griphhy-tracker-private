@@ -3,10 +3,16 @@ const bcrypt = require("bcryptjs");
 const db = require("../../models");
 const Attachment = db.attachment;
 const User = db.User;
-const saltRounds = process.env.SALT_ROUNDS;
 const nodemailer = require("nodemailer");
-const { uuid } = require("uuidv4");
-exports.signup = async (req, res) => {
+const {
+  saltRounds,
+  ACCESS_TOKEN_EXPIRY,
+  REFRESH_TOKEN_EXPIRY,
+  RESET_TOKEN_EXPIRY,
+  EMAIL_TOKEN_EXPIRY,
+} = require("../../config/authConfig.js");
+const { v4: uuid } = require("uuid");
+exports.createUser = async (req, res) => {
   let user = new User({
     ...req.body,
   });
@@ -28,13 +34,11 @@ exports.signup = async (req, res) => {
   ) {
     // loop through req.files and create an array of objects
     let user_media = req.files.map((file, index) => {
-      console.log();
       return {
         imgPath: file.path,
         name: attachment_name[index],
       };
     });
-    console.log("user media ========>", user_media);
     // insert many user_media
     user_media = await Attachment.bulkCreate(user_media);
     // get ids of user_media
@@ -46,50 +50,49 @@ exports.signup = async (req, res) => {
   const salt = await bcrypt.genSalt(10);
   user.password = await bcrypt.hash(user.password, salt);
   // generate unique token for email verification using uuid
-  const token = uuid();
-  user.emailVerificationToken = token;
+  // const token = uuid();
+  // user.emailVerificationToken = token;
   // email verification token expiry time is 1 minutes
-  user.emailVerificationTokenExpiry = Date.now() + 1 * 60 * 1000;
+  // user.emailVerificationTokenExpiry = EMAIL_TOKEN_EXPIRY;
 
   // send email verification link
-  const transporter = nodemailer.createTransport({
-    service: "gmail",
-    auth: {
-      user: process.env.EMAIL,
-      pass: process.env.PASSWORD,
-    },
-  });
-  const mailOptions = {
-    from: process.env.EMAIL,
-    to: user.email,
-    subject: "Email Verification",
-    html: `<h1>Click the link below to verify your email</h1>
-    <a href="${process.env.CLIENT_URL}/api/web/auth/verify-email?token=${token}">Verify Email</a>`,
-  };
-  transporter.sendMail(mailOptions, (err, info) => {
-    if (err) {
-      console.log("mail error ===>", err);
-    } else {
-      console.log("Email sent: " + info.response);
-    }
-  });
+  // const transporter = nodemailer.createTransport({
+  //   service: "gmail",
+  //   auth: {
+  //     user: process.env.EMAIL,
+  //     pass: process.env.PASSWORD,
+  //   },
+  // });
+  // const mailOptions = {
+  //   from: process.env.EMAIL,
+  //   to: user.email,
+  //   subject: "Email Verification",
+  //   html: `<h1>Click the link below to verify your email</h1>
+  //   <a href="${process.env.CLIENT_URL}/api/web/auth/verify-email?token=${token}">Verify Email</a>`,
+  // };
+  // transporter.sendMail(mailOptions, (err, info) => {
+  //   if (err) {
+  //     console.log("mail error ===>", err);
+  //   } else {
+  //     console.log("Email sent: " + info.response);
+  //   }
+  // });
   //  create a new column in user table called details
 
   // alter table and add a new column called details
-  console.log("user ========>", user);
+  user.emailVerified = 1;
   user = await user.save();
   if (!user) {
     return res.status(500).send({ message: "User can not be created!" });
   }
 
   return res.status(200).send({
-    message: "User was registered successfully!",
+    message: "User was created successfully!",
   });
 };
 // sign in user
 exports.signin = async (req, res) => {
   const { email, password } = req.body;
-  console.log("email ========>", email);
   try {
     // find user
     if (!email || !password) {
@@ -124,12 +127,12 @@ exports.signin = async (req, res) => {
       });
     }
     // generate token
-
     const accessToken = jwt.sign(
       { id: user.id },
       process.env.ACCESS_TOKEN_SECRET,
       {
-        expiresIn: process.env.ACCESS_TOKEN_EXPIRY,
+        // expiresIn 10min
+        expiresIn: ACCESS_TOKEN_EXPIRY,
       }
     );
     let refreshToken = jwt.sign(
@@ -139,7 +142,7 @@ exports.signin = async (req, res) => {
       process.env.REFRESH_TOKEN_SECRET,
 
       {
-        expiresIn: 24 * 60 * 60 * 1000,
+        expiresIn: REFRESH_TOKEN_EXPIRY,
       }
     );
     // save token in db
@@ -147,7 +150,7 @@ exports.signin = async (req, res) => {
     // set refresh token in cookie
     res.cookie("refreshToken", refreshToken, {
       httpOnly: true,
-      maxAge: 24 * 60 * 60 * 1000,
+      maxAge: REFRESH_TOKEN_EXPIRY,
     });
     await user.save();
     res.status(200).send({
@@ -234,7 +237,7 @@ exports.changePassword = async (req, res) => {
     const passwordIsValid = bcrypt.compareSync(oldPassword, user.password);
     if (!passwordIsValid) {
       return res.status(401).send({
-        message: "Invalid Password!",
+        message: "Wrong Password!",
       });
     }
     const salt = await bcrypt.genSalt(saltRounds);
@@ -267,8 +270,7 @@ exports.forgotPassword = async (req, res) => {
     // generate token using uuid
     const token = uuid();
     user.resetPasswordToken = token;
-    // token expires in 1 min
-    user.passwordResetTokenExpiry = process.env.EMAIL_TOKEN_EXPIRY;
+    user.passwordResetTokenExpiry = RESET_TOKEN_EXPIRY;
     // update user
     await user.save();
 
@@ -285,7 +287,7 @@ exports.forgotPassword = async (req, res) => {
       to: user.email,
       subject: "Reset Password",
       html: `<h1>Click the link below to reset your password</h1>
-      <a href="${process.env.CLIENT_URL}/api/admin/auth/forgot-password?token=${token}">Reset Password</a>`,
+      <a href="${process.env.CLIENT_URL}/api/web/auth/forgot-password?token=${token}">Reset Password</a>`,
     };
     transporter.sendMail(mailOptions, (err, info) => {
       if (err) {
@@ -369,7 +371,6 @@ exports.refreshToken = async (req, res) => {
 
     //  evaluate jwt
     const decoded = jwt.verify(refreshToken, process.env.REFRESH_TOKEN_SECRET);
-    console.log("decoded ====>", decoded);
     if (decoded.id !== foundUser.id) {
       return res.status(401).send({ message: "Unauthorized!" });
     }
@@ -377,7 +378,7 @@ exports.refreshToken = async (req, res) => {
       { id: foundUser.id },
       process.env.ACCESS_TOKEN_SECRET,
       {
-        expiresIn: process.env.ACCESS_TOKEN_EXPIRY,
+        expiresIn: ACCESS_TOKEN_EXPIRY,
       }
     );
     return res.status(200).send({
@@ -393,7 +394,7 @@ exports.logout = async (req, res) => {
   // take token from head and jwt.destroy
   const cookies = req.cookies;
   if (!cookies?.refreshToken)
-    return res.status(401).send({ message: "Unauthorized!" });
+    return res.status(401).send({ message: "Already Logged Out!" });
 
   const refreshToken = cookies.refreshToken;
 

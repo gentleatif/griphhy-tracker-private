@@ -2,8 +2,13 @@ const jwt = require("jsonwebtoken");
 const bcrypt = require("bcryptjs");
 const db = require("../../models");
 const User = db.User;
-let saltRounds = process.env.SALT_ROUNDS;
-saltRounds = parseInt(saltRounds);
+const {
+  saltRounds,
+  REFRESH_TOKEN_EXPIRY,
+  ACCESS_TOKEN_EXPIRY,
+  RESET_TOKEN_EXPIRY,
+  EMAIL_TOKEN_EXPIRY,
+} = require("../../config/authConfig");
 
 // sign in user
 exports.signin = async (req, res) => {
@@ -41,15 +46,15 @@ exports.signin = async (req, res) => {
         message: "Wrong Password!",
       });
     }
-    // generate token
 
     const accessToken = jwt.sign(
       { id: user.id },
       process.env.ACCESS_TOKEN_SECRET,
       {
-        expiresIn: process.env.ACCESS_TOKEN_EXPIRY,
+        expiresIn: ACCESS_TOKEN_EXPIRY,
       }
     );
+
     let refreshToken = jwt.sign(
       {
         id: user.id,
@@ -57,7 +62,7 @@ exports.signin = async (req, res) => {
       process.env.REFRESH_TOKEN_SECRET,
 
       {
-        expiresIn: 24 * 60 * 60 * 1000,
+        expiresIn: REFRESH_TOKEN_EXPIRY,
       }
     );
     // save token in db
@@ -65,7 +70,7 @@ exports.signin = async (req, res) => {
     // set refresh token in cookie
     res.cookie("refreshToken", refreshToken, {
       httpOnly: true,
-      maxAge: 24 * 60 * 60 * 1000,
+      maxAge: REFRESH_TOKEN_EXPIRY,
     });
     await user.save();
     res.status(200).send({
@@ -153,7 +158,7 @@ exports.refreshToken = async (req, res) => {
       { id: foundUser.id },
       process.env.ACCESS_TOKEN_SECRET,
       {
-        expiresIn: process.env.ACCESS_TOKEN_EXPIRY,
+        expiresIn: ACCESS_TOKEN_EXPIRY,
       }
     );
     return res.status(200).send({

@@ -10,6 +10,11 @@ exports.profile = async (req, res) => {
   let user = await User.findOne({
     where: { id: req.userId },
     attributes: ["id", "fullname", "profilePic", "status"],
+    include: [
+      {
+        model: Screenshot,
+      },
+    ],
   });
   if (!user) {
     return res.status(404).send({ message: "User Not found." });
@@ -18,50 +23,25 @@ exports.profile = async (req, res) => {
   const TODAY_START = new Date().setHours(0, 0, 0, 0);
   const NOW = new Date();
 
-  let screenshotOfUserOfAllProjects = await User_project.findAll({
-    where: { userId: req.userId },
-    include: [
-      {
-        model: Screenshot,
-      },
-    ],
-  });
-
-  let allProjectOfUserWithTime = screenshotOfUserOfAllProjects.map(
-    (project) => {
-      let totalTimeOfToday = 0;
-      project.Screenshots.map((singleScreenshot) => {
-        if (
-          singleScreenshot.createdAt >= TODAY_START &&
-          singleScreenshot.createdAt <= NOW
-        ) {
-          totalTimeOfToday += singleScreenshot.duration;
-        }
-      });
-      project = project.toJSON();
-      // convert totalTimeOfday min to hour and min
-      project.totalTimeOfToday = totalTimeOfToday;
-      delete project.Screenshots;
-      return project;
-    }
-  );
-
-  let totalTrackedTimeInMin = 0;
+  // loop through user Screenshots and calculate
+  //  totalTimeOfTodayOnAllProject
   user = user.toJSON();
+  let totalTimeOfTodayOnAllProject = 0;
 
-  totalTrackedTimeInMin = allProjectOfUserWithTime.reduce((acc, cValue) => {
-    return acc + cValue.totalTimeOfToday;
-  }, 0);
+  user.Screenshots.map((singleScreenshot) => {
+    if (
+      singleScreenshot.createdAt >= TODAY_START &&
+      singleScreenshot.createdAt <= NOW
+    ) {
+      totalTimeOfTodayOnAllProject += singleScreenshot.duration;
+    }
+  });
   user.totalTimeOfTodayOnAllProject =
-    Math.floor(totalTrackedTimeInMin / 60) +
+    Math.floor(totalTimeOfTodayOnAllProject / 60) +
     "h " +
-    (totalTrackedTimeInMin % 60) +
+    (totalTimeOfTodayOnAllProject % 60) +
     "m";
-
-  // user = await user.getAttachments();
-  if (!user) {
-    return res.status(404).send({ message: "User Not found." });
-  }
+  delete user.Screenshots;
 
   return res.status(200).send(user);
 };
