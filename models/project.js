@@ -13,8 +13,8 @@ module.exports = (sequelize, Sequelize) => {
       type: Sequelize.STRING,
     },
     status: {
-      type: Sequelize.BOOLEAN,
-      default: 1,
+      type: Sequelize.INTEGER,
+      defaultValue: 1,
     },
   });
   return Project;

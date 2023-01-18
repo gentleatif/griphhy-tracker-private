@@ -30,8 +30,8 @@ exports.getProject = async (req, res) => {
   projects = projects.map((project) => {
     project.Screenshots.map((singleScreenshot) => {
       if (
-        singleScreenshot.createdAt >= TODAY_START &&
-        singleScreenshot.createdAt <= NOW
+        singleScreenshot.TimeOfCapture >= TODAY_START &&
+        singleScreenshot.TimeOfCapture <= NOW
       ) {
         totalTimeOfToday += singleScreenshot.duration;
       }

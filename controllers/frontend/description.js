@@ -8,16 +8,12 @@ const Description = db.description;
 exports.getDescription = async (req, res) => {
   const userId = req.userId;
   const { id } = req.query;
-  const { description } = req.body;
   if (!id) {
     return res.status(400).send({ message: "Project id is required" });
   }
 
   if (!userId) {
     return res.status(400).send({ message: "Invalid UserId" });
-  }
-  if (description) {
-    return res.status(400).send({ message: "Description is required" });
   }
 
   try {
@@ -36,8 +32,11 @@ exports.getDescription = async (req, res) => {
     const description = await Description.findAll({
       where: { ProjectId: id, UserId: userId },
     });
-    if (!description) {
+    if (description.length === 0) {
       return res.status(400).send({ message: "Description not found" });
+    }
+    if (description.length === 1) {
+      return res.status(200).send(description[0]);
     }
     let lastDescription = description[description.length - 1];
 

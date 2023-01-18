@@ -122,7 +122,6 @@ exports.signin = async (req, res) => {
 
     if (!passwordIsValid) {
       return res.status(401).send({
-        accessToken: null,
         message: "Invalid Password!",
       });
     }
@@ -343,6 +342,9 @@ exports.resetPassword = async (req, res) => {
 
     const salt = await bcrypt.genSalt(saltRounds);
     user.password = await bcrypt.hash(newPassword, salt);
+    // remove resetPasswordToken and passwordResetTokenExpiry
+    user.resetPasswordToken = null;
+    user.passwordResetTokenExpiry = null;
     await user.save();
     res.status(200).send({
       message: "Password reset successfully!",

@@ -30,8 +30,8 @@ exports.profile = async (req, res) => {
 
   user.Screenshots.map((singleScreenshot) => {
     if (
-      singleScreenshot.createdAt >= TODAY_START &&
-      singleScreenshot.createdAt <= NOW
+      singleScreenshot.TimeOfCapture >= TODAY_START &&
+      singleScreenshot.TimeOfCapture <= NOW
     ) {
       totalTimeOfTodayOnAllProject += singleScreenshot.duration;
     }

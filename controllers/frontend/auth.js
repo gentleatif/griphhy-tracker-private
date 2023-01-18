@@ -42,7 +42,6 @@ exports.signin = async (req, res) => {
 
     if (!passwordIsValid) {
       return res.status(401).send({
-        accessToken: null,
         message: "Wrong Password!",
       });
     }

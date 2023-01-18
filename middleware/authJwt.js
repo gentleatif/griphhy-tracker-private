@@ -26,8 +26,38 @@ exports.isAdmin = async (req, res, next) => {
   if (!user) {
     return res.status(404).send({ message: "User Not found." });
   }
-  if (user.role !== "admin") {
+  // admin role is 3
+  if (user.role !== 3) {
     return res.status(403).send({ message: "Require Admin Role!" });
+  }
+  next();
+};
+// is HR middleware
+exports.isHR = async (req, res, next) => {
+  const user = await User.findOne({
+    where: { id: req.userId },
+  });
+  if (!user) {
+    return res.status(404).send({ message: "User Not found." });
+  }
+  // PM role is 2
+  if (user.role !== 2) {
+    return res.status(403).send({ message: "Require PM Role!" });
+  }
+  next();
+};
+
+// admin and HR middleware
+exports.isAdminOrHR = async (req, res, next) => {
+  const user = await User.findOne({
+    where: { id: req.userId },
+  });
+  if (!user) {
+    return res.status(404).send({ message: "User Not found." });
+  }
+
+  if (user.role !== 3 && user.role !== 2) {
+    return res.status(403).send({ message: "Require Admin or HR Role!" });
   }
   next();
 };

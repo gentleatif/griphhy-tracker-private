@@ -47,8 +47,8 @@ exports.getProject = async (req, res) => {
       let totalTimeOfToday = 0;
       user.Screenshots.map((singleScreenshot) => {
         if (
-          singleScreenshot.createdAt >= TODAY_START &&
-          singleScreenshot.createdAt <= NOW
+          singleScreenshot.TimeOfCapture >= TODAY_START &&
+          singleScreenshot.TimeOfCapture <= NOW
         ) {
           totalTimeOfToday += singleScreenshot.duration;
         }
@@ -83,24 +83,26 @@ exports.getProject = async (req, res) => {
 
 exports.addProject = async (req, res) => {
   const { name, subtitle, users, status } = req.body;
-  console.log("req.body", req.body);
+
   try {
     let project = await Project.create({
       name,
       subtitle,
       status,
     });
-
-    console.log("userid", req.userId);
-    let user = await User.findOne({
-      where: { id: req.userId },
+    let foundUser = await User.findAll({
+      where: {
+        id: {
+          [Sequelize.Op.in]: users,
+        },
+      },
     });
-    if (!user) {
-      return res.status(404).send("user not found");
-    }
-    await user.addProject(project);
 
-    return res.status(200).send(project);
+    await project.setUsers(foundUser);
+
+    return res.status(200).send({
+      message: "project created successfully",
+    });
   } catch (error) {
     return res.status(500).send(error);
   }
@@ -111,8 +113,6 @@ exports.updateProject = async (req, res) => {
   const { name, subtitle, users, status } = req.body;
   const id = req.query.id;
 
-  // can change name, subtitle, status
-  // can add and remove associated users with project
   try {
     let project = await Project.findOne({
       where: { id: id },
@@ -120,16 +120,23 @@ exports.updateProject = async (req, res) => {
     if (!project) {
       return res.status(404).send("project not found");
     }
-
+    let foundUsers = await User.findAll({
+      where: {
+        id: {
+          [Sequelize.Op.in]: users,
+        },
+      },
+    });
+    await project.setUsers(foundUsers);
     await project.update({
       name,
       subtitle,
       status,
     });
 
-    await project.setUsers(users);
-
-    return res.status(200).send(project);
+    return res.status(200).send({
+      message: "project updated successfully",
+    });
   } catch (error) {
     return res.status(500).send(error);
   }

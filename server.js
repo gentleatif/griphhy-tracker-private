@@ -10,7 +10,6 @@ const bodyParser = require("body-parser");
 const cookieParser = require("cookie-parser");
 const express = require("express");
 const app = express();
-
 // body parser to handle missing field
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(cookieParser());
@@ -51,6 +50,11 @@ User.hasMany(Description);
 Description.belongsTo(User);
 Project.hasMany(Description);
 Description.belongsTo(Project);
+
+// screenshot relation with description
+
+Description.hasMany(Screenshot);
+Screenshot.belongsTo(Description);
 
 db.sequelize
   .sync({ alter: true })
