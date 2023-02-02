@@ -4,7 +4,7 @@ const {
   profile,
   getUser,
   updateUser,
-} = require("../../..../../../controllers/web/user.js");
+} = require("../../../controllers/web/user");
 const { isAuthenticated } = require("../../../middleware/authJwt.js");
 const upload = require("../../../middleware/multer.js");
 

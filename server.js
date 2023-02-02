@@ -26,6 +26,7 @@ const webProjectRoutes = require("./routes/api/web/project");
 const webUserRoutes = require("./routes/api/web/user");
 const webScreenshotRoutes = require("./routes/api/web/screenshot");
 const webDescriptionRoutes = require("./routes/api/web/description");
+const webWorkspaceRoutes = require("./routes/api/web/workspace");
 
 // middlewares
 app.use("/uploads", express.static("./uploads"));
@@ -78,6 +79,7 @@ app.use("/api/web/project", webProjectRoutes);
 app.use("/api/web/user", webUserRoutes);
 app.use("/api/web/screenshot", webScreenshotRoutes);
 app.use("/api/web/description", webDescriptionRoutes);
+app.use("/api/web/workspace", webWorkspaceRoutes);
 
 app.get("/", (req, res) => res.send("hello world"));
 app.listen(PORT, () => console.log(`Server is up and running on ...${PORT}`));
