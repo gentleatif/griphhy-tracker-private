@@ -4,128 +4,281 @@ const bcrypt = require("bcryptjs");
 const db = require("../../models");
 const Attachment = db.attachment;
 const User = db.User;
-const nodemailer = require("nodemailer");
-const CLIENT_ID =
-  "359010113154-damlb8f8t6lrr7sjf61vbts4lq60n99v.apps.googleusercontent.com";
-const CLIENT_SECRET = "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";
-const REDIRECT_URI = "https://developers.google.com/oauthplayground";
-const REFRESH_TOKEN =
-  "1//04EN4Zc0CkkdsCgYIARAAGAQSNwF-L9Ir5l8CxLEgy1xb86M5TbzjKRfXuOf_BwInwQJh2YMSDKhJJzhh0GkFqYHwn8VvvsC7luM";
 
-const oAuth2Client = new google.auth.OAuth2(
-  CLIENT_ID,
-  CLIENT_SECRET,
-  REDIRECT_URI
-);
-// set refresh token
-oAuth2Client.setCredentials({ refresh_token: REFRESH_TOKEN });
+const { v4: uuid } = require("uuid");
 
-// get access token
-const accessToken = oAuth2Client.getAccessToken();
+var path = require("path");
 
-// Initialize the Admin SDK Directory API
-const admin = google.admin({ version: "directory_v1", auth: oAuth2Client });
+const auth = new google.auth.GoogleAuth({
+  keyFile: path.join(__dirname, "./credentials.json"),
+  scopes: [
+    "https://www.googleapis.com/auth/admin.directory.user",
+    "https://www.googleapis.com/auth/admin.directory.customer",
+    "https://www.googleapis.com/auth/admin.datatransfer",
+  ],
+});
 
-//
+const admin = google.admin({
+  version: "directory_v1",
+  auth: auth,
+});
 
-// create a new user in google workspace
-exports.googleWorkspaceCreateUser = async (req, res) => {
+console.log(admin.users.list({ userKey: "adminatif@atifhussain.me" }));
+
+const transfer = google.admin({
+  version: "datatransfer_v1",
+  auth: auth,
+});
+exports.createUser = async (req, res) => {
   try {
-    // let user = new User({
-    //   ...req.body,
-    // });
-    // // if user has uploaded any file
-    // let attachment_name = req.body.attachment_name;
-    // // when req.file name is profilePic
-    // if (
-    //   req.files &&
-    //   req.files.length > 0 &&
-    //   req.files[0].fieldname === "profilePic"
-    // ) {
-    //   user.profilePic = req.files[0].path;
-    // }
+    let user = new User({
+      ...req.body,
+    });
+    // if user has uploaded any file
+    let attachment_name = req.body.attachment_name;
+    // when req.file name is profilePic
+    if (
+      req.files &&
+      req.files.length > 0 &&
+      req.files[0].fieldname === "profilePic"
+    ) {
+      user.profilePic = req.files[0].path;
+    }
 
-    // if (
-    //   req.files &&
-    //   req.files.length > 0 &&
-    //   req.files[0].fieldname !== "profilePic"
-    // ) {
-    //   // loop through req.files and create an array of objects
-    //   let user_media = req.files.map((file, index) => {
-    //     return {
-    //       imgPath: file.path,
-    //       name: attachment_name[index],
-    //     };
-    //   });
-    //   // insert many user_media
-    //   user_media = await Attachment.bulkCreate(user_media);
-    //   // get ids of user_media
-    //   user_media = user_media.map((media) => media.id);
-    //   // set user_media to user
-    //   user.attachment = user_media;
-    // }
-    // // hash password using jwt
-    // const salt = await bcrypt.genSalt(10);
-    // user.password = await bcrypt.hash(user.password, salt);
-    // // generate unique token for email verification using uuid
-    // // const token = uuid();
-    // // user.emailVerificationToken = token;
-    // // email verification token expiry time is 1 minutes
-    // // user.emailVerificationTokenExpiry = EMAIL_TOKEN_EXPIRY;
+    if (
+      req.files &&
+      req.files.length > 0 &&
+      req.files[0].fieldname !== "profilePic"
+    ) {
+      // loop through req.files and create an array of objects
+      let user_media = req.files.map((file, index) => {
+        return {
+          imgPath: file.path,
+          name: attachment_name[index],
+        };
+      });
+      // insert many user_media
+      user_media = await Attachment.bulkCreate(user_media);
+      // get ids of user_media
+      user_media = user_media.map((media) => media.id);
+      // set user_media to user
+      user.attachment = user_media;
+    }
+    // hash password using jwt
+    const salt = await bcrypt.genSalt(10);
+    user.password = await bcrypt.hash(user.password, salt);
+    user.emailVerified = 1;
+    user = await user.save();
+    if (!user) {
+      return res.status(500).send({ message: "User can not be created!" });
+    }
+    const googlePassword = uuid();
 
-    // // send email verification link
-    // // const transporter = nodemailer.createTransport({
-    // //   service: "gmail",
-    // //   auth: {
-    // //     user: process.env.EMAIL,
-    // //     pass: process.env.PASSWORD,
-    // //   },
-    // // });
-    // // const mailOptions = {
-    // //   from: process.env.EMAIL,
-    // //   to: user.email,
-    // //   subject: "Email Verification",
-    // //   html: `<h1>Click the link below to verify your email</h1>
-    // //   <a href="${process.env.CLIENT_URL}/api/web/auth/verify-email?token=${token}">Verify Email</a>`,
-    // // };
-    // // transporter.sendMail(mailOptions, (err, info) => {
-    // //   if (err) {
-    // //     console.log("mail error ===>", err);
-    // //   } else {
-    // //     console.log("Email sent: " + info.response);
-    // //   }
-    // // });
-    // //  create a new column in user table called details
-
-    // // alter table and add a new column called details
-    // user.emailVerified = 1;
-    // user = await user.save();
-    // if (!user) {
-    //   return res.status(500).send({ message: "User can not be created!" });
-    // }
-
-    // creating account of user in google workspace
-    let data = await admin.users.insert({
+    let workspace = await admin.users.insert({
       requestBody: {
         name: {
-          givenName: "new user",
-          familyName: "dsd",
+          givenName: req.body.fullname.split(" ")[0],
+          familyName: req.body.fullname.split(" ")[1],
         },
         suspended: false,
-        primaryEmail: "gentleatidf@atifhussain.me",
-        // password automatically generated by google
-        password: "Atif@123",
+        primaryEmail: req.body.email,
+        password: googlePassword,
         changePasswordAtNextLogin: false,
-        orgUnitPath: "/",
-        agreedToTerms: true,
-
-        // role of user
       },
     });
 
-    res.status(200).send(data);
+    return res.status(200).send(user);
   } catch (error) {
-    console.log(error);
     res.status(400).json(error);
+  }
+};
+
+exports.updateUser = async (req, res) => {
+  let id = req.query._id;
+
+  try {
+    let user = await User.findOne({ where: { id: id } });
+    if (!user) {
+      return res.status(404).send({ message: "User Not found." });
+    }
+    // take all data from req.body and update replace it with old user data
+
+    // if user has uploaded any file
+    let attachment_name = req.body.attachment_name;
+    // when req.file name is profilePic
+    if (
+      req.files &&
+      req.files.length > 0 &&
+      req.files[0].fieldname === "profilePic"
+    ) {
+      user.profilePic = req.files[0].path;
+    }
+
+    if (
+      req.files &&
+      req.files.length > 0 &&
+      req.files[0].fieldname !== "profilePic"
+    ) {
+      // loop through req.files and create an array of objects
+      let user_media = req.files.map((file, index) => {
+        return {
+          imgPath: file.path,
+          name: attachment_name[index],
+        };
+      });
+      // replace old user_media with new user_media
+      await Attachment.destroy({ where: { userId: id } });
+      user_media = await Attachment.bulkCreate(user_media);
+      // get ids of user_media
+      user_media = user_media.map((media) => media.id);
+      // set user_media to user
+      user.attachment = user_media;
+    }
+
+    // hash password using jwt
+    const salt = await bcrypt.genSalt(10);
+    user.password = await bcrypt.hash(user.password, salt);
+    user.emailVerified = 1;
+
+    // return res.status(200).send(user);
+    let googlePassword = uuid();
+    let workspace = await admin.users.update({
+      userKey: user.email,
+      requestBody: {
+        name: {
+          givenName: req.body.fullname.split(" ")[0],
+          familyName: req.body.fullname.split(" ")[1],
+        },
+        suspended: false,
+        primaryEmail: req.body.email,
+        password: googlePassword,
+        changePasswordAtNextLogin: false,
+      },
+    });
+
+    user.email = req.body.email;
+    user = await user.save();
+    // convert user to json
+    user = user.toJSON();
+    user.password = undefined;
+    user.googlePassword = googlePassword;
+    return res.status(200).send(user);
+  } catch (error) {
+    console.log("error in update user from catch block", error);
+    return res.status(400).send({
+      message: error.message || "Some error occurred while updating the User.",
+    });
+  }
+};
+
+exports.getUser = async (req, res) => {
+  try {
+    let user = await User.findAll({
+      where: req.query,
+      attributes: {
+        exclude: [
+          "password",
+          "emailVerificationToken",
+          "emailVerificationTokenExpiry",
+          "passwordResetTokenExpiry",
+          "resetPasswordTokenExpiry",
+          "refreshToken",
+          "role",
+          "resetPasswordToken",
+        ],
+      },
+    });
+    if (!user) {
+      return res.status(404).send({ message: "User Not found." });
+    }
+    return res.status(200).send(user);
+  } catch (error) {
+    return res.status(400).send({
+      message: error.message || "Some error occurred while retrieving user.",
+    });
+  }
+};
+
+exports.deleteUser = async (req, res) => {
+  console.log("delete user", req.query);
+  if (!req.query._id) {
+    return res.status(400).send({ message: "User id can not be empty" });
+  }
+  try {
+    // find user by id and update status to 0
+    let user = await User.findOne({ where: { id: req.query._id } });
+    if (!user) {
+      return res.status(404).send({ message: "User Not found." });
+    }
+    if (user.status === 0) {
+      return res.status(200).send({ message: "User already deleted" });
+    }
+    user.email = "adminatif@atifhussain.me";
+    console.log("user", user.email);
+    // get userId from workspace using email id
+    let adminworkspace = await admin.users.get({
+      userKey: "adminatif@atifhussain.me",
+    });
+
+    let userworkspace = await admin.users.get({
+      userKey: user.email,
+    });
+
+    console.log(userworkspace);
+
+    // get all applications of user
+    // let userApps = await transfer.applications.list({
+    //   userKey: user.email,
+    //   maxResults: 50,
+    // });
+    // list down all applications of user atleast 50
+    let userApps = await transfer.applications.list({
+      userKey: user.email,
+      maxResults: 50,
+    });
+
+    return res.status(200).send(userApps);
+
+    userApps = Array.from(userApps.data.applications);
+    userApps = userApps.map((app) => {
+      let data = {
+        applicationId: app.id,
+      };
+      if (app.transferParams) {
+        data.applicationTransferParams = app.transferParams.map((param) => {
+          return {
+            key: param.key,
+            value: param.value,
+          };
+        });
+      }
+
+      return data;
+    });
+    console.log(userApps);
+    let dataTransferred = await transfer.transfers.insert({
+      resource: {
+        oldOwnerUserId: userworkspace.data.id,
+        newOwnerUserId: adminworkspace.data.id,
+        applicationDataTransfers: userApps,
+      },
+    });
+
+    // delete user from workspace using email id
+    await admin.users.delete({
+      userKey: user.email,
+    });
+
+    user.status = 0;
+    user = await user.save();
+
+    return res.status(200).send({
+      message:
+        "User deleted successfully , and their data transferred to the admin",
+    });
+  } catch (error) {
+    return res.status(400).send({
+      message: error.message || "Some error occurred while deleting the User.",
+    });
   }
 };
