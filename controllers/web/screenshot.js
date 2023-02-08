@@ -37,7 +37,7 @@ exports.getScreenshot = async (req, res) => {
       exclude: ["DescriptionId"],
     },
   });
-  // adding description in screenshot table
+  // adding description in screenshot table ddasdsdsdsads
   screenshots = screenshots.map((screenshot) => {
     screenshot = screenshot.toJSON();
     if (screenshot.Description == null) return screenshot;
