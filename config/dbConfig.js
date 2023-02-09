@@ -1,8 +1,8 @@
 module.exports = {
-  host: "bqfg4hjfzkl3ffamw163-mysql.services.clever-cloud.com",
-  user: "uqdrnrakw4zg5jkw",
-  password: "0QEZwEw9DtniHCcwy5jj",
-  database: "bqfg4hjfzkl3ffamw163",
+  host: process.env.DB_HOST,
+  user: process.env.DB_USERNAME,
+  password: process.env.DB_PASSWORD,
+  database: process.env.DB_DBNAME,
   dialect: "mysql",
   // add port number
   port: 3306,
