@@ -4,6 +4,8 @@ module.exports = {
   password: "0QEZwEw9DtniHCcwy5jj",
   database: "bqfg4hjfzkl3ffamw163",
   dialect: "mysql",
+  // add port number
+  port: 3306,
   pool: {
     max: 5,
     min: 0,
