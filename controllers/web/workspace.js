@@ -23,7 +23,7 @@ const admin = google.admin({
   auth: auth,
 });
 
-console.log(admin.users.list({ userKey: "adminatif@atifhussain.me" }));
+// console.log(admin.users.list({ userKey: "adminatif@atifhussain.me" }));
 
 const transfer = google.admin({
   version: "datatransfer_v1",
