@@ -1,8 +1,8 @@
 module.exports = {
-  host: "127.0.0.1:3306",
-  user: "root",
-  password: "a82268T@",
-  database: "griphhyInternalSysDB",
+  host: "bqfg4hjfzkl3ffamw163-mysql.services.clever-cloud.com",
+  user: "uqdrnrakw4zg5jkw",
+  password: "0QEZwEw9DtniHCcwy5jj",
+  database: "bqfg4hjfzkl3ffamw163",
   dialect: "mysql",
   pool: {
     max: 5,
