@@ -33,7 +33,12 @@ exports.getDescription = async (req, res) => {
       where: { ProjectId: id, UserId: userId },
     });
     if (description.length === 0) {
-      return res.status(400).send({ message: "Description not found" });
+      let noDescription = {
+        description: "",
+        userId: userId,
+        projectId: id,
+      };
+      return res.status(200).send(noDescription);
     }
     if (description.length === 1) {
       return res.status(200).send(description[0]);
