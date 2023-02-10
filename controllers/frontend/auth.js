@@ -101,7 +101,7 @@ exports.changePassword = async (req, res) => {
     // old password cannot be same as new password
     if (oldPassword === newPassword) {
       return res.status(401).send({
-        message: "Old password cannot be same as new password!",
+        message: "New password cannot be same as old password!",
       });
     }
 
