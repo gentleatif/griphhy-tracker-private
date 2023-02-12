@@ -18,16 +18,10 @@ exports.profile = async (req, res) => {
 exports.getUser = async (req, res) => {
   let user = await User.findAll({
     where: { ...req.query },
-    attributes: [
-      "id",
-      "fullname",
-      "description",
-      "employeeId",
-      "address",
-      "profilePic",
-      "role",
-    ],
+    include: Attachment,
   });
+
+  console.log("user", user);
   if (!user) {
     return res.status(404).send({ message: "User Not found." });
   }

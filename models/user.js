@@ -21,9 +21,7 @@ module.exports = (sequelize, Sequelize) => {
     description: {
       type: Sequelize.STRING,
     },
-    attachment: {
-      type: Sequelize.JSON,
-    },
+
     address: {
       type: Sequelize.STRING,
     },

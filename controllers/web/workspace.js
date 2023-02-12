@@ -3,27 +3,31 @@ const jwt = require("jsonwebtoken");
 const bcrypt = require("bcryptjs");
 const db = require("../../models");
 const Attachment = db.attachment;
+const Project = db.Project;
 const User = db.User;
+const { JWT } = require("google-auth-library");
 
 const { v4: uuid } = require("uuid");
 
 var path = require("path");
-
-const auth = new google.auth.GoogleAuth({
-  keyFile: path.join(__dirname, "./credentials.json"),
-  scopes: [
-    "https://www.googleapis.com/auth/admin.directory.user",
-    "https://www.googleapis.com/auth/admin.directory.customer",
-    "https://www.googleapis.com/auth/admin.datatransfer",
-  ],
+const SCOPES = [
+  "https://www.googleapis.com/auth/admin.directory.user",
+  "https://www.googleapis.com/auth/admin.directory.customer",
+  "https://www.googleapis.com/auth/admin.datatransfer",
+  "https://www.googleapis.com/auth/admin.directory.user.security",
+];
+const privatekey = require("./credentials.json");
+const auth = new JWT({
+  email: privatekey.client_email,
+  key: privatekey.private_key,
+  subject: process.env.WORKSPACE_ADMIN_EMAIL,
+  scopes: SCOPES,
 });
 
 const admin = google.admin({
   version: "directory_v1",
   auth: auth,
 });
-
-// console.log(admin.users.list({ userKey: "adminatif@atifhussain.me" }));
 
 const transfer = google.admin({
   version: "datatransfer_v1",
@@ -34,46 +38,15 @@ exports.createUser = async (req, res) => {
     let user = new User({
       ...req.body,
     });
-    // if user has uploaded any file
-    let attachment_name = req.body.attachment_name;
-    // when req.file name is profilePic
-    if (
-      req.files &&
-      req.files.length > 0 &&
-      req.files[0].fieldname === "profilePic"
-    ) {
-      user.profilePic = req.files[0].path;
+    // check if user already exists
+    let userExists = await User.findOne({
+      where: { email: req.body.email },
+    });
+    if (userExists) {
+      return res.status(400).send({ message: "User already exists!" });
     }
 
-    if (
-      req.files &&
-      req.files.length > 0 &&
-      req.files[0].fieldname !== "profilePic"
-    ) {
-      // loop through req.files and create an array of objects
-      let user_media = req.files.map((file, index) => {
-        return {
-          imgPath: file.path,
-          name: attachment_name[index],
-        };
-      });
-      // insert many user_media
-      user_media = await Attachment.bulkCreate(user_media);
-      // get ids of user_media
-      user_media = user_media.map((media) => media.id);
-      // set user_media to user
-      user.attachment = user_media;
-    }
-    // hash password using jwt
-    const salt = await bcrypt.genSalt(10);
-    user.password = await bcrypt.hash(user.password, salt);
-    user.emailVerified = 1;
-    user = await user.save();
-    if (!user) {
-      return res.status(500).send({ message: "User can not be created!" });
-    }
-    const googlePassword = uuid();
-
+    let googlePassword = uuid();
     let workspace = await admin.users.insert({
       requestBody: {
         name: {
@@ -86,8 +59,53 @@ exports.createUser = async (req, res) => {
         changePasswordAtNextLogin: false,
       },
     });
+    // if user has uploaded any file
+    let attachment_name = req.body.attachment_name;
+    // check if profile Pic is uploaded
+    let isProfilePic = req.files.some((singlefile) => {
+      return singlefile.fieldname === "profilePic";
+    });
 
-    return res.status(200).send(user);
+    if (req.files && req.files.length > 0 && isProfilePic) {
+      user.profilePic = req.files.filter((file) => {
+        return file.fieldname === "profilePic";
+      })[0].path;
+      // remove profile pic from req.files
+      req.files = req.files.filter((file) => {
+        return file.fieldname !== "profilePic";
+      });
+    }
+
+    // hash password using jwt
+    const salt = await bcrypt.genSalt(10);
+    user.password = await bcrypt.hash(user.password, salt);
+    user.emailVerified = 1;
+
+    user = await user.save();
+    // adding attachment to the newly created user
+    if (req.files && req.files.length > 0 && req.files) {
+      user_media = req.files.map((file, index) => {
+        return {
+          name: attachment_name[index],
+          imgPath: file.path,
+          UserId: user.id,
+        };
+      });
+
+      let media = await Attachment.bulkCreate(user_media);
+    }
+
+    if (!user) {
+      return res.status(500).send({ message: "User can not be created!" });
+    }
+    user = user.toJSON();
+
+    delete user.password;
+    user.googlePassword = googlePassword;
+    // TODO: Ask to sir , can send all dtls here , otherwise need to call getuser
+    return res.status(200).send({
+      message: "User created successfully!",
+    });
   } catch (error) {
     res.status(400).json(error);
   }
@@ -129,10 +147,6 @@ exports.updateUser = async (req, res) => {
       // replace old user_media with new user_media
       await Attachment.destroy({ where: { userId: id } });
       user_media = await Attachment.bulkCreate(user_media);
-      // get ids of user_media
-      user_media = user_media.map((media) => media.id);
-      // set user_media to user
-      user.attachment = user_media;
     }
 
     // hash password using jwt
@@ -187,6 +201,16 @@ exports.getUser = async (req, res) => {
           "resetPasswordToken",
         ],
       },
+      include: [
+        {
+          model: Attachment,
+          attributes: { exclude: ["UserId"] },
+        },
+        {
+          model: Project,
+          through: { attributes: [] },
+        },
+      ],
     });
     if (!user) {
       return res.status(404).send({ message: "User Not found." });
@@ -213,31 +237,19 @@ exports.deleteUser = async (req, res) => {
     if (user.status === 0) {
       return res.status(200).send({ message: "User already deleted" });
     }
-    user.email = "adminatif@atifhussain.me";
-    console.log("user", user.email);
     // get userId from workspace using email id
     let adminworkspace = await admin.users.get({
-      userKey: "adminatif@atifhussain.me",
+      userKey: process.env.WORKSPACE_ADMIN_EMAIL,
     });
 
     let userworkspace = await admin.users.get({
       userKey: user.email,
     });
 
-    console.log(userworkspace);
-
-    // get all applications of user
-    // let userApps = await transfer.applications.list({
-    //   userKey: user.email,
-    //   maxResults: 50,
-    // });
-    // list down all applications of user atleast 50
     let userApps = await transfer.applications.list({
       userKey: user.email,
       maxResults: 50,
     });
-
-    return res.status(200).send(userApps);
 
     userApps = Array.from(userApps.data.applications);
     userApps = userApps.map((app) => {
