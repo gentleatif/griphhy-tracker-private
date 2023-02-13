@@ -206,10 +206,6 @@ exports.getUser = async (req, res) => {
           model: Attachment,
           attributes: { exclude: ["UserId"] },
         },
-        {
-          model: Project,
-          through: { attributes: [] },
-        },
       ],
     });
     if (!user) {
