@@ -1,9 +1,7 @@
 const { google } = require("googleapis");
-const jwt = require("jsonwebtoken");
 const bcrypt = require("bcryptjs");
 const db = require("../../models");
 const Attachment = db.attachment;
-const Project = db.Project;
 const User = db.User;
 const { JWT } = require("google-auth-library");
 
@@ -16,7 +14,7 @@ const SCOPES = [
   "https://www.googleapis.com/auth/admin.datatransfer",
   "https://www.googleapis.com/auth/admin.directory.user.security",
 ];
-const privatekey = require("./credentials.json");
+const privatekey = require("../../config/credentials.json");
 const auth = new JWT({
   email: privatekey.client_email,
   key: privatekey.private_key,
