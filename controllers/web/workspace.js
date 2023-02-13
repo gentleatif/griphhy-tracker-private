@@ -119,34 +119,22 @@ exports.updateUser = async (req, res) => {
     if (!user) {
       return res.status(404).send({ message: "User Not found." });
     }
-    // take all data from req.body and update replace it with old user data
 
     // if user has uploaded any file
     let attachment_name = req.body.attachment_name;
-    // when req.file name is profilePic
-    if (
-      req.files &&
-      req.files.length > 0 &&
-      req.files[0].fieldname === "profilePic"
-    ) {
-      user.profilePic = req.files[0].path;
-    }
+    // check if profile Pic is uploaded
+    let isProfilePic = req.files.some((singlefile) => {
+      return singlefile.fieldname === "profilePic";
+    });
 
-    if (
-      req.files &&
-      req.files.length > 0 &&
-      req.files[0].fieldname !== "profilePic"
-    ) {
-      // loop through req.files and create an array of objects
-      let user_media = req.files.map((file, index) => {
-        return {
-          imgPath: file.path,
-          name: attachment_name[index],
-        };
+    if (req.files && req.files.length > 0 && isProfilePic) {
+      user.profilePic = req.files.filter((file) => {
+        return file.fieldname === "profilePic";
+      })[0].path;
+      // remove profile pic from req.files
+      req.files = req.files.filter((file) => {
+        return file.fieldname !== "profilePic";
       });
-      // replace old user_media with new user_media
-      await Attachment.destroy({ where: { userId: id } });
-      user_media = await Attachment.bulkCreate(user_media);
     }
 
     // hash password using jwt
@@ -172,6 +160,18 @@ exports.updateUser = async (req, res) => {
 
     user.email = req.body.email;
     user = await user.save();
+    // adding attachment to the newly created user
+    if (req.files && req.files.length > 0 && req.files) {
+      user_media = req.files.map((file, index) => {
+        return {
+          name: attachment_name[index],
+          imgPath: file.path,
+          UserId: user.id,
+        };
+      });
+
+      let media = await Attachment.bulkCreate(user_media);
+    }
     // convert user to json
     user = user.toJSON();
     user.password = undefined;
