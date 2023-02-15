@@ -27,16 +27,11 @@ exports.getProject = async (req, res) => {
 
   let NOW = new Date();
   NOW = NOW.getTime();
-  // convert now to current time in hour and minute
 
-  let totalTimeOfAllDays = 0;
-  let totalTimeOfToday = 0;
   projects = projects.map((project) => {
+    let totalTimeOfAllDays = 0;
+    let totalTimeOfToday = 0;
     project.Screenshots.map((singleScreenshot) => {
-      console.log("today start", TODAY_START);
-      console.log("time of capture", singleScreenshot.TimeOfCapture);
-      console.log("now", NOW);
-
       if (
         singleScreenshot.TimeOfCapture >= TODAY_START &&
         singleScreenshot.TimeOfCapture <= NOW
