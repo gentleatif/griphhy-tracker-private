@@ -1,11 +1,7 @@
-const { user } = require("../../models");
 const db = require("../../models");
-const User = db.User;
-const Project = db.Project;
-const UserProject = db.User_Project;
 const Screenshot = db.screenshot;
 const Description = db.description;
-const moment = require("moment");
+const { uploadFile } = require("../../config/s3");
 
 exports.addScreenshot = async (req, res) => {
   const photo = req.file;
@@ -21,7 +17,6 @@ exports.addScreenshot = async (req, res) => {
   if (!id) {
     return res.status(400).send({ message: "Project id is required" });
   }
-  // user id
   if (!userId) {
     return res.status(400).send({ message: "Invalid UserId" });
   }
@@ -38,7 +33,6 @@ exports.addScreenshot = async (req, res) => {
   if (!TimeOfCapture) {
     return res.status(400).send({ message: "TimeOfCapture is required" });
   }
-  console.log(typeof Number(TimeOfCapture));
   if (TimeOfCapture > new Date().getTime()) {
     return res.status(400).send({ message: "TimeOfCapture is invalid" });
   }
@@ -59,10 +53,11 @@ exports.addScreenshot = async (req, res) => {
   }
 
   try {
+    const s3Image = await uploadFile(req.file, "screenshots");
     const screenshot = await Screenshot.create({
       ProjectId: id,
       UserId: userId,
-      imgPath: photo.path,
+      imgPath: s3Image.key,
       keyboardEvents: keyboardEvent,
       mouseEvents: mouseEvent,
       duration: duration,

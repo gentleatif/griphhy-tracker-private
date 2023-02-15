@@ -12,7 +12,6 @@ const {
   addProject,
   updateProject,
 } = require("../../../controllers/web/project");
-const { route } = require("./auth");
 // Admin and HR can access this route
 router.get("/", isAuthenticated, isAdminOrHR, getProject);
 router.post("/add", isAuthenticated, upload.none(), addProject);

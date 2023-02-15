@@ -3,8 +3,11 @@ const bcrypt = require("bcryptjs");
 const db = require("../../models");
 const Attachment = db.attachment;
 const User = db.User;
+const { Op } = require("sequelize");
 const { JWT } = require("google-auth-library");
 const { v4: uuid } = require("uuid");
+const { uploadFile, filePublicUrl } = require("../../config/s3");
+
 const SCOPES = [
   "https://www.googleapis.com/auth/admin.directory.user",
   "https://www.googleapis.com/auth/admin.directory.customer",
@@ -64,8 +67,9 @@ exports.createUser = async (req, res) => {
     if (req.files && req.files.length > 0 && isProfilePic) {
       user.profilePic = req.files.filter((file) => {
         return file.fieldname === "profilePic";
-      })[0].path;
-      // remove profile pic from req.files
+      })[0];
+      user.profilePic = await uploadFile(user.profilePic, "profilePic");
+      user.profilePic = user.profilePic.key;
       req.files = req.files.filter((file) => {
         return file.fieldname !== "profilePic";
       });
@@ -82,10 +86,19 @@ exports.createUser = async (req, res) => {
       user_media = req.files.map((file, index) => {
         return {
           name: attachment_name[index],
-          imgPath: file.path,
+          file: file,
           UserId: user.id,
         };
       });
+
+      // upload files to s3
+      user_media = await Promise.all(
+        user_media.map(async (file) => {
+          file.imgPath = await uploadFile(file.file, "attachment");
+          file.imgPath = file.imgPath.key;
+          return file;
+        })
+      );
 
       let media = await Attachment.bulkCreate(user_media);
     }
@@ -100,6 +113,8 @@ exports.createUser = async (req, res) => {
     // TODO: Ask to sir , can send all dtls here , otherwise need to call getuser
     return res.status(200).send({
       message: "User created successfully!",
+      email: user.email,
+      googlePassword: user.googlePassword,
     });
   } catch (error) {
     res.status(400).json(error);
@@ -108,16 +123,46 @@ exports.createUser = async (req, res) => {
 
 exports.updateUser = async (req, res) => {
   let id = req.query._id;
+  const {
+    fullname,
+    password,
+    gender,
+    designation,
+    employeeId,
+    description,
+    address,
+    role,
+    status,
+  } = req.body;
+  console.log(
+    "update",
+    fullname,
+    password,
+    gender,
+    designation,
+    employeeId,
+    description,
+    address,
+    role,
+    status
+  );
 
   try {
-    let user = await User.findOne({ where: { id: id } });
+    let user = await User.findOne({
+      where: { id: id },
+      include: [
+        {
+          model: Attachment,
+          attributes: { exclude: ["UserId"] },
+        },
+      ],
+    });
     if (!user) {
       return res.status(404).send({ message: "User Not found." });
     }
 
-    // if user has uploaded any file
+    // profile pic update
     let attachment_name = req.body.attachment_name;
-    // check if profile Pic is uploaded
     let isProfilePic = req.files.some((singlefile) => {
       return singlefile.fieldname === "profilePic";
     });
@@ -125,53 +170,61 @@ exports.updateUser = async (req, res) => {
     if (req.files && req.files.length > 0 && isProfilePic) {
       user.profilePic = req.files.filter((file) => {
         return file.fieldname === "profilePic";
-      })[0].path;
-      // remove profile pic from req.files
+      })[0];
+      user.profilePic = await uploadFile(user.profilePic, "profilePic");
+      user.profilePic = user.profilePic.key;
       req.files = req.files.filter((file) => {
         return file.fieldname !== "profilePic";
       });
     }
-
-    // hash password using jwt
+    // password and fullname update
     const salt = await bcrypt.genSalt(10);
-    user.password = await bcrypt.hash(user.password, salt);
+    user.fullname = fullname;
+    user.gender = gender;
+    user.password = await bcrypt.hash(password, salt);
+    user.designation = designation;
+    user.employeeId = employeeId;
+    user.description = description;
+    user.address = address;
+    user.role = role;
+    user.status = status;
+
     user.emailVerified = 1;
 
-    // return res.status(200).send(user);
-    let googlePassword = uuid();
-    let workspace = await admin.users.update({
-      userKey: user.email,
-      requestBody: {
-        name: {
-          givenName: req.body.fullname.split(" ")[0],
-          familyName: req.body.fullname.split(" ")[1],
-        },
-        suspended: false,
-        primaryEmail: req.body.email,
-        password: googlePassword,
-        changePasswordAtNextLogin: false,
-      },
-    });
-
-    user.email = req.body.email;
+    // user.email = req.body.email;
     user = await user.save();
     // adding attachment to the newly created user
     if (req.files && req.files.length > 0 && req.files) {
       user_media = req.files.map((file, index) => {
         return {
           name: attachment_name[index],
-          imgPath: file.path,
+          file: file,
           UserId: user.id,
         };
       });
 
+      // upload files to s3
+      user_media = await Promise.all(
+        user_media.map(async (file) => {
+          file.imgPath = await uploadFile(file.file, "attachment");
+          file.imgPath = file.imgPath.key;
+          return file;
+        })
+      );
+      // find and delete all the previous attachemnt of the user
+      await Attachment.destroy({
+        where: {
+          UserId: user.id,
+        },
+      });
       let media = await Attachment.bulkCreate(user_media);
     }
-    // convert user to json
+
     user = user.toJSON();
     user.password = undefined;
-    user.googlePassword = googlePassword;
-    return res.status(200).send(user);
+    return res.status(200).send({
+      message: "User Updated Successfully",
+    });
   } catch (error) {
     console.log("error in update user from catch block", error);
     return res.status(400).send({
@@ -203,6 +256,15 @@ exports.getUser = async (req, res) => {
         },
       ],
     });
+
+    user = user.map((singleUser) => {
+      singleUser.profilePic = `${filePublicUrl}${singleUser.profilePic}`;
+      singleUser.Attachments.map((attachement) => {
+        attachement.imgPath = `${filePublicUrl}${attachement.imgPath}`;
+      });
+      return singleUser;
+    });
+
     if (!user) {
       return res.status(404).send({ message: "User Not found." });
     }
@@ -215,7 +277,6 @@ exports.getUser = async (req, res) => {
 };
 
 exports.deleteUser = async (req, res) => {
-  console.log("delete user", req.query);
   if (!req.query._id) {
     return res.status(400).send({ message: "User id can not be empty" });
   }
@@ -258,7 +319,6 @@ exports.deleteUser = async (req, res) => {
 
       return data;
     });
-    console.log(userApps);
     let dataTransferred = await transfer.transfers.insert({
       resource: {
         oldOwnerUserId: userworkspace.data.id,

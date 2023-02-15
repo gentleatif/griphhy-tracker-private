@@ -1,11 +1,8 @@
-const { description } = require("../../models");
 const db = require("../../models");
 const Screenshot = db.screenshot;
-const Project = db.Project;
-const User = db.User;
-const UserProject = db.User_Project;
 const Sequelize = require("sequelize");
 const Description = db.description;
+const { filePublicUrl } = require("../../config/s3");
 
 exports.getScreenshot = async (req, res) => {
   const Op = Sequelize.Op;
@@ -40,9 +37,16 @@ exports.getScreenshot = async (req, res) => {
   // adding description in screenshot table ddasdsdsdsads
   screenshots = screenshots.map((screenshot) => {
     screenshot = screenshot.toJSON();
-    if (screenshot.Description == null) return screenshot;
-    screenshot.description = screenshot.Description.description;
+
+    screenshot.imgPath = `${filePublicUrl}${screenshot.imgPath}`;
+
+    if (screenshot.Description != null) {
+      screenshot.description = screenshot.Description.description;
+    } else {
+      screenshot.description = "";
+    }
     delete screenshot.Description;
+
     return screenshot;
   });
 

@@ -17,6 +17,7 @@ exports.verifySignUp = async (req, res, next) => {
 
   try {
     // Email must be unique
+
     if (!email) {
       return res.status(400).send({
         message: "Failed! Email is required!",
@@ -27,11 +28,10 @@ exports.verifySignUp = async (req, res, next) => {
         email: email,
       },
     });
-    console.log("user=====>", user);
 
     if (user) {
       return res.status(400).send({
-        message: "Failed! Username is already in use!",
+        message: "Failed! user is already in use!",
       });
     }
     // Fullname (3 characters )

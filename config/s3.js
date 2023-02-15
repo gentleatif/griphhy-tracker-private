@@ -14,25 +14,40 @@ const s3 = new S3({
 });
 
 // uploads a file to s3
-function uploadFile(file) {
+function uploadFile(file, type) {
+  console.log("type", type);
   const fileStream = fs.createReadStream(file.path);
   const uploadParams = {
     Bucket: bucketName,
     Body: fileStream,
-    Key: `photo/${file.filename}`,
+    Key: `${type}/${file.filename}`,
     ACL: "public-read",
   };
-  console.log("uploadParams: ------>", uploadParams);
   return s3.upload(uploadParams).promise();
 }
 exports.uploadFile = uploadFile;
 
 // downloads a file from s3
 function getFileStream(fileKey) {
-  fileKey = "photo/16762946456014.png";
+  fileKey = "photo/16764432489911676289659946main board.jpg";
   const downloadParams = {
     Key: fileKey,
     Bucket: bucketName,
   };
 }
 exports.getFileStream = getFileStream;
+
+// delete a file from s3
+function deleteFile(fileKey) {
+  const deleteParams = {
+    Key: fileKey,
+    Bucket: bucketName,
+  };
+  return s3.deleteObject(deleteParams).promise();
+}
+exports.deleteFile = deleteFile;
+
+// file public base url for s3
+const filePublicUrl =
+  "https://internal-sys-storage.s3.ap-south-1.amazonaws.com/";
+exports.filePublicUrl = filePublicUrl;

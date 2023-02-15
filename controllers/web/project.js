@@ -16,7 +16,6 @@ exports.getProject = async (req, res) => {
         model: User,
         include: [Screenshot],
         through: { attributes: [] },
-        // get only few attributes of user
         attributes: [
           "id",
           "fullname",
