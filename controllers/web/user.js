@@ -6,7 +6,7 @@ const User = db.User;
 const { Op } = require("sequelize");
 const { JWT } = require("google-auth-library");
 const { v4: uuid } = require("uuid");
-const { uploadFile, filePublicUrl } = require("../../config/s3");
+const { uploadFile, deleteFile, filePublicUrl } = require("../../config/s3");
 
 const SCOPES = [
   "https://www.googleapis.com/auth/admin.directory.user",
@@ -134,18 +134,6 @@ exports.updateUser = async (req, res) => {
     role,
     status,
   } = req.body;
-  console.log(
-    "update",
-    fullname,
-    password,
-    gender,
-    designation,
-    employeeId,
-    description,
-    address,
-    role,
-    status
-  );
 
   try {
     let user = await User.findOne({
@@ -203,6 +191,20 @@ exports.updateUser = async (req, res) => {
         };
       });
 
+      // delete file from s3
+      await Promise.all(
+        user.Attachments.map(async (file) => {
+          console.log("file", file);
+          await deleteFile(file.imgPath);
+        })
+      );
+      //delete file of user from db
+      await Attachment.destroy({
+        where: {
+          UserId: user.id,
+        },
+      });
+
       // upload files to s3
       user_media = await Promise.all(
         user_media.map(async (file) => {
@@ -211,12 +213,8 @@ exports.updateUser = async (req, res) => {
           return file;
         })
       );
-      // find and delete all the previous attachemnt of the user
-      await Attachment.destroy({
-        where: {
-          UserId: user.id,
-        },
-      });
+
+      // upload to db
       let media = await Attachment.bulkCreate(user_media);
     }
 

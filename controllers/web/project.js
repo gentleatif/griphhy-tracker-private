@@ -82,7 +82,7 @@ exports.getProject = async (req, res) => {
 
 exports.addProject = async (req, res) => {
   const { name, subtitle, users, status } = req.body;
-
+  console.log(req.body);
   try {
     let project = await Project.create({
       name,

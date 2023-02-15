@@ -1,6 +1,7 @@
 const express = require("express");
 const router = express.Router();
-const upload = require("../../../middleware/multer");
+// const upload = require("../../../middleware/multer");
+const upload = require("../../../middleware/formidable");
 const {
   isAuthenticated,
   isAdmin,
@@ -14,7 +15,7 @@ const {
 } = require("../../../controllers/web/project");
 // Admin and HR can access this route
 router.get("/", isAuthenticated, isAdminOrHR, getProject);
-router.post("/add", isAuthenticated, upload.none(), addProject);
-router.put("/update", isAuthenticated, upload.none(), updateProject);
+router.post("/add", isAuthenticated, upload, addProject);
+router.put("/update", isAuthenticated, upload, updateProject);
 
 module.exports = router;

@@ -1,5 +1,7 @@
 require("dotenv").config();
 const fs = require("fs");
+const util = require("util");
+const unlinkfile = util.promisify(fs.unlink);
 const S3 = require("aws-sdk/clients/s3");
 
 const bucketName = process.env.AWS_BUCKET_NAME;
@@ -14,7 +16,7 @@ const s3 = new S3({
 });
 
 // uploads a file to s3
-function uploadFile(file, type) {
+async function uploadFile(file, type) {
   console.log("type", type);
   const fileStream = fs.createReadStream(file.path);
   const uploadParams = {
@@ -23,7 +25,11 @@ function uploadFile(file, type) {
     Key: `${type}/${file.filename}`,
     ACL: "public-read",
   };
-  return s3.upload(uploadParams).promise();
+  const uploadedFile = await s3.upload(uploadParams).promise();
+  // console.log("uploaddedFile", uploadedFile);
+  await unlinkfile(file.path);
+
+  return uploadedFile;
 }
 exports.uploadFile = uploadFile;
 

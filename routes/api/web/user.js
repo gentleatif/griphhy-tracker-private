@@ -10,8 +10,6 @@ const { verifySignUp } = require("../../../middleware/verifySignUp.js");
 const { isAuthenticated } = require("../../../middleware/authJwt.js");
 const upload = require("../../../middleware/multer.js");
 
-const { uploadFile, getFileStream } = require("../../../config/s3");
-
 router.post(
   "/create-user",
   isAuthenticated,

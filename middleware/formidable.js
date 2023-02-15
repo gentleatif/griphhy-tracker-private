@@ -1,4 +1,6 @@
-const formidable = (req, res, next) => {
+const formidable = require("formidable");
+
+const upload = (req, res, next) => {
   const form = new formidable.IncomingForm();
 
   form.parse(req, (err, fields, files) => {
@@ -15,4 +17,4 @@ const formidable = (req, res, next) => {
   });
 };
 
-module.exports = formidable;
+module.exports = upload;
