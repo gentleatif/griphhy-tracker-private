@@ -24,15 +24,24 @@ exports.getProject = async (req, res) => {
 
   const Op = Sequelize.Op;
   const TODAY_START = new Date().setHours(0, 0, 0, 0);
-  const NOW = new Date();
+
+  let NOW = new Date();
+  NOW = NOW.getTime();
+  // convert now to current time in hour and minute
+
   let totalTimeOfAllDays = 0;
   let totalTimeOfToday = 0;
   projects = projects.map((project) => {
     project.Screenshots.map((singleScreenshot) => {
+      console.log("today start", TODAY_START);
+      console.log("time of capture", singleScreenshot.TimeOfCapture);
+      console.log("now", NOW);
+
       if (
         singleScreenshot.TimeOfCapture >= TODAY_START &&
         singleScreenshot.TimeOfCapture <= NOW
       ) {
+        console.log("time screentshot");
         totalTimeOfToday += singleScreenshot.duration;
       }
 
@@ -43,7 +52,6 @@ exports.getProject = async (req, res) => {
 
     project.totalTimeOfToday =
       Math.floor(totalTimeOfToday / 60) + "h " + (totalTimeOfToday % 60) + "m";
-    // convert totalTimeOfAllDays min to hour and min
     project.totalTimeOfAllDays =
       Math.floor(totalTimeOfAllDays / 60) +
       "h " +

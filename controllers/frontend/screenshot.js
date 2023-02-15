@@ -14,6 +14,7 @@ exports.addScreenshot = async (req, res) => {
 
   const { keyboardEvent, mouseEvent, duration, TimeOfCapture, DescriptionId } =
     req.body;
+
   if (!duration) {
     return res.status(400).send({ message: "Duration is required" });
   }
@@ -37,11 +38,10 @@ exports.addScreenshot = async (req, res) => {
   if (!TimeOfCapture) {
     return res.status(400).send({ message: "TimeOfCapture is required" });
   }
-  // check TimeOfCapture is valid sequelize date format
-  if (!moment(TimeOfCapture, moment.ISO_8601, true).isValid()) {
-    return res.status(400).send({ message: "TimeOfCapture is not valid" });
+  console.log(typeof Number(TimeOfCapture));
+  if (TimeOfCapture > new Date().getTime()) {
+    return res.status(400).send({ message: "TimeOfCapture is invalid" });
   }
-
   // check if this DescriptionId is belongs to this user and project
   if (DescriptionId) {
     const description = await Description.findOne({
@@ -59,7 +59,6 @@ exports.addScreenshot = async (req, res) => {
   }
 
   try {
-    // add screnshot where ProjectId = id and UserId = userId
     const screenshot = await Screenshot.create({
       ProjectId: id,
       UserId: userId,
@@ -67,10 +66,9 @@ exports.addScreenshot = async (req, res) => {
       keyboardEvents: keyboardEvent,
       mouseEvents: mouseEvent,
       duration: duration,
-      TimeOfCapture: TimeOfCapture,
+      TimeOfCapture: Number(TimeOfCapture),
       DescriptionId: DescriptionId,
     });
-    console.log("screenshot--->", screenshot);
 
     return res.status(200).send({
       message: "Screenshot added successfully",

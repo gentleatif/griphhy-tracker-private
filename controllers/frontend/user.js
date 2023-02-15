@@ -1,9 +1,5 @@
 const db = require("../../models");
-// const attachment = require("../../models/attachment");
 const User = db.User;
-const Project = db.Project;
-const Attachment = db.attachment;
-const User_project = db.User_Project;
 const Screenshot = db.screenshot;
 const Sequelize = require("sequelize");
 exports.profile = async (req, res) => {

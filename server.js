@@ -4,14 +4,13 @@ const db = require("./models");
 const User = db.User;
 const Project = db.Project;
 const Screenshot = db.screenshot;
-const User_Project = db.User_Project;
 const Attachment = db.attachment;
 const Description = db.description;
 const bodyParser = require("body-parser");
 const cookieParser = require("cookie-parser");
 const express = require("express");
 const app = express();
-// body parser to handle missing field
+// config
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(cookieParser());
 // import all routes of frontend
@@ -21,17 +20,16 @@ const projectRoutes = require("./routes/api/frontend/project");
 const descriptionRoutes = require("./routes/api/frontend/description");
 const screenshotRoutes = require("./routes/api/frontend/screenshot");
 
-// import all routes of
+// Importing all routes of web panel
 const webAuthRoutes = require("./routes/api/web/auth");
 const webProjectRoutes = require("./routes/api/web/project");
-const webUserRoutes = require("./routes/api/web/user");
 const webScreenshotRoutes = require("./routes/api/web/screenshot");
 const webDescriptionRoutes = require("./routes/api/web/description");
-const webWorkspaceRoutes = require("./routes/api/web/workspace");
+const webUserRoutes = require("./routes/api/web/user");
 
 // middlewares
 app.use("/uploads", express.static("./uploads"));
-// relations
+// **** Relations   ****
 User.hasMany(Attachment);
 Attachment.belongsTo(User);
 User.belongsToMany(Project, {
@@ -47,7 +45,7 @@ Screenshot.belongsTo(User);
 Project.hasMany(Screenshot);
 Screenshot.belongsTo(Project);
 
-// description relation
+// Description relation
 User.hasMany(Description);
 Description.belongsTo(User);
 Project.hasMany(Description);
@@ -68,7 +66,7 @@ db.sequelize
   });
 
 const PORT = process.env.PORT || 3000;
-// my routes
+// frontend routes
 app.use("/api/auth", authRoutes);
 app.use("/api/user", userRoutes);
 app.use("/api/project", projectRoutes);
@@ -77,10 +75,9 @@ app.use("/api/screenshot", screenshotRoutes);
 // web panel routes
 app.use("/api/web/auth", webAuthRoutes);
 app.use("/api/web/project", webProjectRoutes);
-app.use("/api/web/user", webUserRoutes);
 app.use("/api/web/screenshot", webScreenshotRoutes);
 app.use("/api/web/description", webDescriptionRoutes);
-app.use("/api/web/workspace", webWorkspaceRoutes);
+app.use("/api/web/user", webUserRoutes);
 
 app.get("/", (req, res) => res.send("hello world"));
 app.listen(PORT, () => console.log(`Server is up and running on ...${PORT}`));

@@ -19,7 +19,8 @@ module.exports = (sequelize, Sequelize) => {
     },
     // save both date and time
     TimeOfCapture: {
-      type: Sequelize.DATE,
+      // milliseconds with 13 digits
+      type: Sequelize.BIGINT,
     },
     createdAt: {
       type: Sequelize.DATE,
