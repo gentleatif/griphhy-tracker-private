@@ -27,7 +27,7 @@ async function uploadFile(file, type) {
   };
   const uploadedFile = await s3.upload(uploadParams).promise();
   // console.log("uploaddedFile", uploadedFile);
-  await unlinkfile(file.path);
+  // await unlinkfile(file.path);
 
   return uploadedFile;
 }
