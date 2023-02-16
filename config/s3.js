@@ -17,7 +17,9 @@ const s3 = new S3({
 
 // uploads a file to s3
 async function uploadFile(file, type) {
-  console.log("type", type);
+  console.log("type in UploadFile ---->", type);
+
+  console.log("file in uploadFile  ----->", file);
   const fileStream = fs.createReadStream(file.path);
   const uploadParams = {
     Bucket: bucketName,
